@@ -13,6 +13,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name="locations")
+@Builder
 public class Location {
 
      @Id
