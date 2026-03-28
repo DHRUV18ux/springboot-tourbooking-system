@@ -35,6 +35,7 @@ public class Location {
      @Positive(message = "distance must be a positive number")
     private Double distance;
 
+     @NotBlank(message = "Location description is required")
     @Column(length = 1000)
     private String locationDescription;
 

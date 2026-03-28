@@ -2,5 +2,6 @@ package com.dhruv.tourBookingApplication.enums;
 
 public enum PaymentStatus {
     PAID,
-    PENDING
+    PENDING,
+    FAIL
 }

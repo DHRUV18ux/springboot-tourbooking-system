@@ -27,6 +27,7 @@ public class Lodging {
      @Column(nullable = false)
     private String lodgingType;
 
+     @NotBlank(message = "Lodging description is required")
      @Column(length =1000)
     private String lodgingDescription;
 

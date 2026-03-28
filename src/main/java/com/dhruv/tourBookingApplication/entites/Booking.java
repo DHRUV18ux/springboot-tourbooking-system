@@ -22,11 +22,11 @@ public class Booking {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long bookingId;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="user_id",referencedColumnName = "id",nullable = false)
     private User customer;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="tour_id",referencedColumnName = "id",nullable = false)
     private Tour tour;
 
@@ -39,12 +39,16 @@ public class Booking {
     private Double totalPrice;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private PaymentStatus paymentStatus;
 
     @NotNull(message = "Booking date is required")
+    @Column(nullable = false)
     private LocalDate bookingDate;
 
-    private boolean isBookingConfirmed;
+    // Stripe gives this when checkout session is created
+    // Frontend redirects user here to complete payment
+    private String stripeSessionUrl;
     private  String paymentTransactionId;
 
 }
