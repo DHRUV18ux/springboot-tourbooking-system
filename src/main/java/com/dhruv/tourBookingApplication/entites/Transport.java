@@ -12,6 +12,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString
+@Builder
 public class Transport {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
