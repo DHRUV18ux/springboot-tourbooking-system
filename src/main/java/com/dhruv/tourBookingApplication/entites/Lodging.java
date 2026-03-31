@@ -14,6 +14,7 @@ import lombok.*;
 @ToString
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class Lodging {
      @Id
      @GeneratedValue(strategy = GenerationType.IDENTITY)
