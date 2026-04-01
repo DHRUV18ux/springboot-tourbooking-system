@@ -12,10 +12,9 @@ import com.dhruv.tourBookingApplication.repo.LocationRepo;
 import com.dhruv.tourBookingApplication.repo.LodgingRepo;
 import com.dhruv.tourBookingApplication.repo.TourRepo;
 import com.dhruv.tourBookingApplication.repo.TransportRepo;
-import com.dhruv.tourBookingApplication.service.interfaces.LocationService;
-import com.dhruv.tourBookingApplication.service.interfaces.LodgingService;
+
 import com.dhruv.tourBookingApplication.service.interfaces.TourService;
-import com.dhruv.tourBookingApplication.service.interfaces.TransportService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
