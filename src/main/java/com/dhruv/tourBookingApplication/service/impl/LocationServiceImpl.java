@@ -4,6 +4,7 @@ import com.dhruv.tourBookingApplication.dto.request.LocationRequestDto;
 import com.dhruv.tourBookingApplication.dto.response.LocationResponseDto;
 import com.dhruv.tourBookingApplication.entites.Location;
 import com.dhruv.tourBookingApplication.exception.LocationNotFoundException;
+import com.dhruv.tourBookingApplication.mapper.LocationMapper;
 import com.dhruv.tourBookingApplication.repo.LocationRepo;
 import com.dhruv.tourBookingApplication.service.interfaces.LocationService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,45 +19,20 @@ import java.util.Optional;
 public class LocationServiceImpl implements LocationService {
 
     private final LocationRepo locationRepo;
+    private final LocationMapper locationMapper;
 
     @Autowired
-    public LocationServiceImpl(LocationRepo locationRepo){
+    public LocationServiceImpl(LocationRepo locationRepo,LocationMapper locationMapper){
         this.locationRepo=locationRepo;
-    }
-
-    //private helper method to convert Location into LocationResponseDto
-    private LocationResponseDto convertToResponseDto(Location location){
-        LocationResponseDto locationResponseDto=LocationResponseDto.builder()
-                .id(location.getId())
-                .fromLocation(location.getFromLocation())
-                .toLocation(location.getToLocation())
-                .country(location.getCountry())
-                .locationDescription(location.getLocationDescription())
-                .distance(location.getDistance())
-                .estimatedTravelTime(location.getEstimatedTravelTime())
-                .build();
-        return locationResponseDto;
-    }
-
-    //private Helper method which convert LocationRequestDto into the Location entity
-    private Location convertToLocation(LocationRequestDto locationRequestDto){
-        Location location=Location.builder()
-                .fromLocation(locationRequestDto.getFromLocation())
-                .toLocation(locationRequestDto.getToLocation())
-                .country(locationRequestDto.getCountry())
-                .distance(locationRequestDto.getDistance())
-                .locationDescription(locationRequestDto.getLocationDescription())
-                .estimatedTravelTime(locationRequestDto.getEstimatedTravelTime())
-                .build();
-        return location;
+        this.locationMapper=locationMapper;
     }
 
 
     @Override
     public LocationResponseDto addLocation(LocationRequestDto locationRequestDto) {
-       Location location=convertToLocation(locationRequestDto);
+       Location location= locationMapper.convertToLocation(locationRequestDto);
         Location savedLocation=locationRepo.save(location);
-        return convertToResponseDto(savedLocation);
+        return locationMapper.convertToResponseDto(savedLocation);
     }
 
     @Override
@@ -64,7 +40,7 @@ public class LocationServiceImpl implements LocationService {
         List<Location> allLocation=locationRepo.findAll();
         List<LocationResponseDto>allLocationResponseDto=new ArrayList<>();
         for(Location location:allLocation){
-            allLocationResponseDto.add(convertToResponseDto(location));
+            allLocationResponseDto.add(locationMapper.convertToResponseDto(location));
         }
         return allLocationResponseDto;
     }
@@ -74,7 +50,7 @@ public class LocationServiceImpl implements LocationService {
         Optional<Location>optional=locationRepo.findById(id);
         if(optional.isPresent()){
             Location location=optional.get();
-            return convertToResponseDto(location);
+            return  locationMapper.convertToResponseDto(location);
         }
         else{
             throw new LocationNotFoundException("There is no location with this location id : "+id);
@@ -93,7 +69,7 @@ public class LocationServiceImpl implements LocationService {
            location.setLocationDescription(locationRequestDto.getLocationDescription());
            location.setEstimatedTravelTime(locationRequestDto.getEstimatedTravelTime());
            Location savedLocation=locationRepo.save(location);
-           return convertToResponseDto(savedLocation);
+           return locationMapper.convertToResponseDto(savedLocation);
         }
         else{
             throw new LocationNotFoundException("There is no location with this location id : "+id);

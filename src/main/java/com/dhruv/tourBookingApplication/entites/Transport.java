@@ -1,5 +1,6 @@
 package com.dhruv.tourBookingApplication.entites;
 
+import com.dhruv.tourBookingApplication.dto.response.TransportResponseDto;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;

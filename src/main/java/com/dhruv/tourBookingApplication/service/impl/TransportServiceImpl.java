@@ -4,6 +4,7 @@ import com.dhruv.tourBookingApplication.dto.request.TransportRequestDto;
 import com.dhruv.tourBookingApplication.dto.response.TransportResponseDto;
 import com.dhruv.tourBookingApplication.entites.Transport;
 import com.dhruv.tourBookingApplication.exception.TransportNotFoundException;
+import com.dhruv.tourBookingApplication.mapper.TransportMapper;
 import com.dhruv.tourBookingApplication.repo.TransportRepo;
 import com.dhruv.tourBookingApplication.service.interfaces.TransportService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,38 +18,19 @@ import java.util.Optional;
 public class TransportServiceImpl implements TransportService {
 
     private final TransportRepo transportRepo;
+    private final TransportMapper transportMapper;
 
      @Autowired
-    public TransportServiceImpl(TransportRepo transportRepo){
-        this.transportRepo=transportRepo;
+    public TransportServiceImpl(TransportRepo transportRepo,TransportMapper transportMapper){
+         this.transportRepo=transportRepo;
+         this.transportMapper=transportMapper;
     }
-
-    private Transport convertToTransport(TransportRequestDto transportRequestDto){
-         Transport transport=Transport.builder()
-                 .transportName(transportRequestDto.getTransportName())
-                 .transportType(transportRequestDto.getTransportType())
-                 .transportDescription(transportRequestDto.getTransportDescription())
-                 .estimatedTravelTime(transportRequestDto.getEstimatedTravelTime())
-                 .build();
-         return transport;
-    }
-
-    private TransportResponseDto convertToResponseDto(Transport transport) {
-         TransportResponseDto responseDto=TransportResponseDto.builder()
-                 .id(transport.getId())
-                 .transportName(transport.getTransportName())
-                 .transportType(transport.getTransportType())
-                 .transportDescription(transport.getTransportDescription())
-                 .estimatedTravelTime(transport.getEstimatedTravelTime())
-                 .build();
-         return responseDto;
-     }
 
     @Override
     public TransportResponseDto addTransport(TransportRequestDto transportRequestDto) {
-        Transport transport=convertToTransport(transportRequestDto);
+        Transport transport=transportMapper.convertToTransport(transportRequestDto);
         Transport savedTransport=transportRepo.save(transport);
-        return convertToResponseDto(savedTransport);
+        return   transportMapper.convertToResponseDto(savedTransport);
     }
 
 
@@ -57,7 +39,7 @@ public class TransportServiceImpl implements TransportService {
         List<Transport> allTransports=transportRepo.findAll();
         List<TransportResponseDto> transportResponseDtos=new ArrayList<>();
         for(Transport transport:allTransports){
-            transportResponseDtos.add(convertToResponseDto(transport));
+            transportResponseDtos.add(transportMapper.convertToResponseDto(transport));
         }
         return transportResponseDtos;
     }
@@ -67,7 +49,7 @@ public class TransportServiceImpl implements TransportService {
         Optional<Transport> optional=transportRepo.findById(id);
         if(optional.isPresent()){
             Transport transport=optional.get();
-            return convertToResponseDto(transport);
+            return transportMapper.convertToResponseDto(transport);
         }
         else{
             throw new TransportNotFoundException("Transport with this id "+ id + " does not exits");
@@ -84,7 +66,7 @@ public class TransportServiceImpl implements TransportService {
             transport.setTransportDescription(transportRequestDto.getTransportDescription());
             transport.setEstimatedTravelTime(transportRequestDto.getEstimatedTravelTime());
             Transport updatedTransport=transportRepo.save(transport);
-            return convertToResponseDto(updatedTransport);
+            return  transportMapper.convertToResponseDto(updatedTransport);
         }
         else{
             throw new TransportNotFoundException("Transport with this id : "+ id +" does not exits");
