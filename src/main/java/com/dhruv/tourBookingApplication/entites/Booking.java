@@ -17,6 +17,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @ToString(exclude = {"customer","tour"})
 @Table(name="bookings")
+@Builder
 public class Booking {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
