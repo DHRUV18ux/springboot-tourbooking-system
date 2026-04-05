@@ -15,7 +15,9 @@ import com.dhruv.tourBookingApplication.service.interfaces.BookingService;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
+import com.stripe.model.StripeObject;
 import com.stripe.model.checkout.Session;
+import com.stripe.net.ApiResource;
 import com.stripe.net.Webhook;
 import com.stripe.param.checkout.SessionCreateParams;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -147,10 +149,11 @@ public class BookingServiceImpl implements BookingService {
              // We only care about successful payments
              if("checkout.session.completed".equals(event.getType())){
                  // Step 3 - get the session data
-                 Session session=(Session) event
-                         .getDataObjectDeserializer()
-                         .getObject()
-                         .orElseThrow(()->new PaymentFailedException("Failed to deserialize Stripe event"));
+
+                 Session session = ApiResource.GSON.fromJson(
+                         event.getDataObjectDeserializer().getRawJson(),
+                         Session.class
+                 );
                  // Step 4 - get metadata we attached when creating session
                  Map<String,String>metadata=session.getMetadata();
                  Long tourId=Long.parseLong(metadata.get("tourId"));
@@ -160,7 +163,7 @@ public class BookingServiceImpl implements BookingService {
                  Booking booking=bookingRepo.findByTour_IdAndCustomer_EmailAndPaymentStatus(tourId,userEmail,PaymentStatus.PENDING)
                          .orElseThrow(()->new BookingNotFoundException("pending booking not found"));
                  // Step 6 - update booking status to SUCCESS
-                 booking.setPaymentStatus(PaymentStatus.SUCCESS);
+                 booking.setPaymentStatus(PaymentStatus.PAID);
                  booking.setPaymentTransactionId(session.getPaymentIntent());
                  bookingRepo.save(booking);
                  Tour tour=booking.getTour();

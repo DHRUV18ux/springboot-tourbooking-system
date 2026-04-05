@@ -49,7 +49,9 @@ public class Booking {
 
     // Stripe gives this when checkout session is created
     // Frontend redirects user here to complete payment
+    @Column(columnDefinition = "TEXT")
     private String stripeSessionUrl;
+    @Column(length = 500)
     private  String paymentTransactionId;
 
 }
