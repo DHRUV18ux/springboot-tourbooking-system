@@ -16,6 +16,7 @@ public class StripeWebhookController {
     public StripeWebhookController(BookingService bookingService) {
         this.bookingService = bookingService;
     }
+
      @PostMapping
     public ResponseEntity<String> handleStripeWebhook(@RequestBody String payload, @RequestHeader("Stripe-Signature") String sigHeader){
          bookingService.handleStripeWebhook(payload,sigHeader);

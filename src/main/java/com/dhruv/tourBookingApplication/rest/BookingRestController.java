@@ -31,7 +31,7 @@ public class BookingRestController {
               return new ResponseEntity<BookingResponseDto>(responseDto, HttpStatus.CREATED);
      }
 
-      @GetMapping("my")
+      @GetMapping("/my")
      public ResponseEntity<List<BookingResponseDto>> getMyBookings(@RequestParam String email){
            List<BookingResponseDto> responseDtoList=bookingService.getMyBookings(email);
            return new ResponseEntity<List<BookingResponseDto>>(responseDtoList,HttpStatus.OK);

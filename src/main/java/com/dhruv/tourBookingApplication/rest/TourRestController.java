@@ -23,11 +23,6 @@ public class TourRestController {
         this.tourService=tourService;
     }
 
-    @PostMapping
-    public ResponseEntity<TourDetailResponseDto> addTour(@Valid @RequestBody TourRequestDto tourRequestDto){
-            TourDetailResponseDto responseDto=tourService.addTour(tourRequestDto);
-            return new ResponseEntity<TourDetailResponseDto>(responseDto, HttpStatus.CREATED);
-    }
 
     @GetMapping
     public ResponseEntity<List<TourSummaryResponseDto>> getAllTours(){
@@ -39,17 +34,6 @@ public class TourRestController {
     public ResponseEntity<TourDetailResponseDto>getTourById(@PathVariable Long id){
          TourDetailResponseDto responseDto=tourService.getTourById(id);
          return new ResponseEntity<TourDetailResponseDto>(responseDto,HttpStatus.OK);
-    }
-    @PutMapping("/{id}")
-    public ResponseEntity<TourDetailResponseDto>updateTour(@PathVariable Long id,@Valid @RequestBody TourRequestDto tourRequestDto){
-          TourDetailResponseDto responseDto=tourService.updateTour(id,tourRequestDto);
-          return new ResponseEntity<TourDetailResponseDto>(responseDto,HttpStatus.OK);
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTour(@PathVariable Long id){
-         tourService.deleteTour(id);
-         return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
     }
 
     @GetMapping("/search")

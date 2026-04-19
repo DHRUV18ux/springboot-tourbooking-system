@@ -108,7 +108,7 @@ public class BookingServiceImpl implements BookingService {
             throw new TourNotFoundException("Tour does not exists with  this tour id :"+bookingRequestDto.getTourId());
         }
 
-        if(tour.getTicketAvailable()<bookingRequestDto.getNumberOfTickets()){
+        if(tour.getTicketAvailable() < bookingRequestDto.getNumberOfTickets()){
             throw new InSufficientTicketsException("Only "+tour.getTicketAvailable()+" tickets available for this tour");
         }
 
@@ -129,6 +129,7 @@ public class BookingServiceImpl implements BookingService {
         Booking booking=Booking.builder()
                 .customer(user)
                 .tour(tour)
+
                 .numberOfTickets(bookingRequestDto.getNumberOfTickets())
                 .totalPrice(totalPrice)
                 .paymentStatus(PaymentStatus.PENDING)
