@@ -37,11 +37,17 @@ public class SpringSecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
         http.csrf(csrf->csrf.disable());
-        http.httpBasic(Customizer.withDefaults());
         http.sessionManagement(sessionManagement->sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                         .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
         http.authorizeHttpRequests(auth-> auth.
-                requestMatchers("/api/auth/**").permitAll()
+                 requestMatchers(
+                         "/swagger-ui/**",
+                         "/swagger-ui.html",
+                         "/v3/api-docs/**",
+                         "/swagger-resources/**",
+                         "/webjars/**"
+                 ).permitAll()
+                .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/webhook/**").permitAll()
                 // Public - view tours
                 .requestMatchers(HttpMethod.GET, "/api/tours/**")

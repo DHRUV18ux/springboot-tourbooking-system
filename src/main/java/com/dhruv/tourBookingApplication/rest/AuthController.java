@@ -9,6 +9,10 @@ import com.dhruv.tourBookingApplication.repo.UserRepo;
 import com.dhruv.tourBookingApplication.service.impl.JwtTokenService;
 import com.dhruv.tourBookingApplication.service.impl.MyUserDetailsService;
 import com.dhruv.tourBookingApplication.service.interfaces.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -27,6 +31,10 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
+@Tag(
+        name="Authentication",
+        description = "APIs for user registration and login to get the JWT token"
+)
 public class AuthController {
 
      private final UserService userService;
@@ -47,6 +55,16 @@ public class AuthController {
       }
 
        @PostMapping("/register")
+       @Operation(
+               summary = "Register a new User",
+               description = "Create a new account by providing name, email, password and contact number via userRegisterDto"
+       )
+       @ApiResponses(value = {
+               @ApiResponse(responseCode = "200",description = "User registered successfully"),
+               @ApiResponse(responseCode = "400",description = "Invalid input data "),
+               @ApiResponse(responseCode = "409",description = "User already exists with this email"),
+               @ApiResponse(responseCode = "500", description = "Internal server error")
+       })
      public ResponseEntity<UserResponseDto> registerUser(@Valid @RequestBody UserRegisterDto userRegisterDto){
                 String password=userRegisterDto.getPassword();
                 String hashPass=passwordEncoder.encode(password);
@@ -56,6 +74,16 @@ public class AuthController {
      }
 
      @PostMapping("/login")
+     @Operation(
+             summary = "Login user",
+             description = "Authenticates the user with email and password and returns a JWT token"
+     )
+     @ApiResponses(value = {
+             @ApiResponse(responseCode = "200", description = "Login successful, JWT token returned"),
+             @ApiResponse(responseCode = "400", description = "Invalid input data"),
+             @ApiResponse(responseCode = "401", description = "Invalid email or password"),
+             @ApiResponse(responseCode = "500", description = "Internal server error")
+     } )
     public ResponseEntity<JwtResponseDto>loginUsers(@Valid @RequestBody LoginDto loginDto){
          Authentication authentication=authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginDto.getEmail(),loginDto.getPassword()));
              User user=userRepo.findByEmail(loginDto.getEmail()).orElseThrow();
