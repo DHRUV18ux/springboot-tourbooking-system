@@ -15,15 +15,15 @@ import com.dhruv.tourBookingApplication.service.interfaces.BookingService;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
-import com.stripe.model.StripeObject;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.ApiResource;
 import com.stripe.net.Webhook;
 import com.stripe.param.checkout.SessionCreateParams;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -99,48 +99,119 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public BookingResponseDto addBooking(BookingRequestDto bookingRequestDto,String email) {
-        Optional<Tour>isTour=tourRepo.findById(bookingRequestDto.getTourId());
-        Tour tour=null;
-        if(isTour.isPresent()){
-             tour=isTour.get();
-        }
-        else{
-            throw new TourNotFoundException("Tour does not exists with  this tour id :"+bookingRequestDto.getTourId());
-        }
-
-        if(tour.getTicketAvailable() < bookingRequestDto.getNumberOfTickets()){
-            throw new InSufficientTicketsException("Only "+tour.getTicketAvailable()+" tickets available for this tour");
+        Optional<Tour> isTour = tourRepo.findById(bookingRequestDto.getTourId());
+        Tour tour = null;
+        if (isTour.isPresent()) {
+            tour = isTour.get();
+        } else {
+            throw new TourNotFoundException("Tour does not exists with  this tour id :" + bookingRequestDto.getTourId());
         }
 
-        Optional<User>isUser=userRepo.findByEmail(email);
-        User user=null;
-        if(isUser.isPresent()){
-             user=isUser.get();
-        }
-        else{
-            throw new UserNotFoundException("User not found with the email "+email);
+        if (tour.getTicketAvailable() < bookingRequestDto.getNumberOfTickets()) {
+            throw new InSufficientTicketsException("Only " + tour.getTicketAvailable() + " tickets available for this tour");
         }
 
-        Double totalPrice=bookingRequestDto.getNumberOfTickets()*tour.getPrice();
+        Optional<User> isUser = userRepo.findByEmail(email);
+        User user = null;
+        if (isUser.isPresent()) {
+            user = isUser.get();
+        } else {
+            throw new UserNotFoundException("User not found with the email " + email);
+        }
+        Double totalPrice = bookingRequestDto.getNumberOfTickets() * tour.getPrice();
+        Tour updatedTour= deductTicketsWithRetry(tour, bookingRequestDto.getNumberOfTickets());
 
         //create Stripe checkout session
-        String stripeSessionUrl=createStripeSessionUrl(tour,bookingRequestDto.getNumberOfTickets(),totalPrice,email);
-
-        Booking booking=Booking.builder()
-                .customer(user)
-                .tour(tour)
-
-                .numberOfTickets(bookingRequestDto.getNumberOfTickets())
-                .totalPrice(totalPrice)
-                .paymentStatus(PaymentStatus.PENDING)
-                .bookingDate(LocalDate.now())
-                .stripeSessionUrl(stripeSessionUrl)
-                .build();
-        Booking savedBooking=bookingRepo.save(booking);
-        return bookingMapper.convertToBookingResponseDto(savedBooking);
+        String stripeSessionUrl = null;
+        try {
+            stripeSessionUrl = createStripeSessionUrl(updatedTour, bookingRequestDto.getNumberOfTickets(), totalPrice, email);
+        } catch (PaymentFailedException e) {
+            restoreTicketsTransactional(updatedTour, bookingRequestDto.getNumberOfTickets());
+            throw e;
+        }
+        return savedBookingTransactional(bookingRequestDto, user, updatedTour, totalPrice, stripeSessionUrl);
     }
 
+     private Tour deductTicketsWithRetry(Tour tour,Integer numberOfTickets){
+          int maxRetries=3;
+          for(int attempt=1;attempt<=maxRetries;attempt++){
+              try{
+                  return deductTicketsTransactional(tour,numberOfTickets);
+              }
+              catch(OptimisticLockingFailureException e){
+                  System.out.println("[Retry] Attempt " + attempt
+                          + " failed for tour: " + tour.getTourName()
+                          + " — version conflict. Retrying...");
+                  Optional<Tour>isFreshTour=tourRepo.findById(tour.getId());
+                  Tour freshTour=null;
+                  if(isFreshTour.isEmpty()){
+                      throw new TourNotFoundException("Tour no longer exits");
+                  }
+                  freshTour=isFreshTour.get();
+                  if(freshTour.getTicketAvailable()<numberOfTickets){
+                      throw new InSufficientTicketsException("Only "+freshTour.getTicketAvailable()+"Tickets available"+
+                              (numberOfTickets- freshTour.getTicketAvailable())+" more needed");
+                  }
+                  if(attempt==maxRetries){
+                      throw new RuntimeException("Booking failed due to high demand "+
+                              "Please try again in a moment. ");
+                  }
+                  try{
+                      Thread.sleep(50L*attempt);
+                  }
+                  catch (InterruptedException ie){
+                      Thread.currentThread().interrupt();
+                      throw new RuntimeException("Booking interrupted");
+                  }
+              }
+          }
+         throw new RuntimeException("Booking failed. Please try again.");
+     }
+
+      @Transactional
+     public Tour deductTicketsTransactional(Tour tour,Integer numberOfTickets){
+         Optional<Tour>isFreshtour=tourRepo.findById(tour.getId());
+         Tour freshTour=null;
+         if(isFreshtour.isPresent()){
+             freshTour=isFreshtour.get();
+         }
+         else{
+             throw new TourNotFoundException("Tour no longer exists");
+         }
+         if(freshTour.getTicketAvailable()<numberOfTickets){
+             throw new InSufficientTicketsException("Only "+freshTour.getTicketAvailable()+"Tickets available.Please try again");
+         }
+         freshTour.setTicketAvailable(freshTour.getTicketAvailable()-numberOfTickets);
+         return tourRepo.save(freshTour);
+     }
+       @Transactional
+      public void restoreTicketsTransactional(Tour tour,Integer numberOfTickets){
+            Optional<Tour>isFreshTour=tourRepo.findById(tour.getId());
+            Tour freshTour=null;
+            if(isFreshTour.isPresent()){
+                freshTour=isFreshTour.get();
+            }
+            freshTour.setTicketAvailable(freshTour.getTicketAvailable()+numberOfTickets);
+            tourRepo.save(freshTour);
+      }
+        @Transactional
+        public BookingResponseDto savedBookingTransactional(BookingRequestDto bookingRequestDto,User user,
+                                                            Tour tour,Double totalPrice,String stripeSessionUrl){
+            Booking booking=Booking.builder()
+                    .customer(user)
+                    .tour(tour)
+                    .numberOfTickets(bookingRequestDto.getNumberOfTickets())
+                    .totalPrice(totalPrice)
+                    .paymentStatus(PaymentStatus.PENDING)
+                    .bookingDate(LocalDate.now())
+                    .stripeSessionUrl(stripeSessionUrl)
+                    .build();
+            Booking savedBooking=bookingRepo.save(booking);
+            return bookingMapper.convertToBookingResponseDto(savedBooking);
+        }
+
     @Override
+    @Transactional
     public void handleStripeWebhook(String payload, String sigHeader) {
          try{
              // Step 1 - verify the request is genuinely from Stripe
@@ -168,7 +239,6 @@ public class BookingServiceImpl implements BookingService {
                  booking.setPaymentTransactionId(session.getPaymentIntent());
                  bookingRepo.save(booking);
                  Tour tour=booking.getTour();
-                 tour.setTicketAvailable(tour.getTicketAvailable()-numberOfTickets);
                  tour.setTicketsSold(tour.getTicketsSold()+numberOfTickets);
                  tourRepo.save(tour);
              }
@@ -179,6 +249,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<BookingResponseDto> getAllBookings() {
         List<Booking>allBookings=bookingRepo.findAll();
         List<BookingResponseDto>responseDtoList=new ArrayList<>();
@@ -189,6 +260,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<BookingResponseDto> getMyBookings(String userEmail) {
          Optional<User>isUser=userRepo.findByEmail(userEmail);
          User user=null;
@@ -207,6 +279,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+     @Transactional(readOnly = true)
     public List<BookingResponseDto> getBookingByTour(Long tourId) {
         Optional<Tour>isTour=tourRepo.findById(tourId);
         Tour tour=null;

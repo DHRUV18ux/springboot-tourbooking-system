@@ -97,5 +97,14 @@ public class Tour {
     @ManyToOne(fetch=FetchType.LAZY)
     @JoinColumn(name="transport_id",referencedColumnName = "id")
     private Transport transport;
+    // @Version tells JPA to add a 'version' column to the tours table
+    // Every time this row is updated, version number increases by 1
+    // If two users try to update the same row at the same time,
+    // the second one gets OptimisticLockingFailureException
+    // This PREVENTS overselling tickets
+    @Version
+    @Column(name = "version")
+    @Builder.Default
+    private Long version=0L;
 
 }

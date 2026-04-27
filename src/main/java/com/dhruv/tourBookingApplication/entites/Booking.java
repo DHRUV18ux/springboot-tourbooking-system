@@ -5,9 +5,12 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 
 @Entity
@@ -18,6 +21,9 @@ import java.time.LocalDate;
 @ToString(exclude = {"customer","tour"})
 @Table(name="bookings")
 @Builder
+// @EntityListeners tells Spring to automatically
+// populate @CreatedDate field when a new booking is saved
+@EntityListeners(AuditingEntityListener.class)
 public class Booking {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -53,5 +59,12 @@ public class Booking {
     private String stripeSessionUrl;
     @Column(length = 500)
     private  String paymentTransactionId;
+    // @CreatedDate automatically sets this to current timestamp
+    // when a new booking is saved to DB
+    // The @Scheduled job uses this to find bookings older than 30 minutes
+    // that are still PENDING (user never paid)
+    @CreatedDate
+    @Column(nullable = true, updatable = false)
+    private LocalDateTime createdAt;
 
 }
